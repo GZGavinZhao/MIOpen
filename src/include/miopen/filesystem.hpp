@@ -27,6 +27,9 @@
 #ifndef GUARD_MIOPEN_FILESYSTEM_HPP_
 #define GUARD_MIOPEN_FILESYSTEM_HPP_
 
+#include <string>
+#include <string_view>
+
 #if defined(CPPCHECK)
 #define MIOPEN_HAS_FILESYSTEM 1
 #define MIOPEN_HAS_FILESYSTEM_TS 1
@@ -72,6 +75,9 @@ namespace fs = ::std::filesystem;
 #elif MIOPEN_HAS_FILESYSTEM_TS
 namespace fs = ::std::experimental::filesystem;
 #endif
+
+inline fs::path operator + (const fs::path& path, std::string_view s) { return path.string() + s.data(); }
+inline std::string operator + (std::string_view s, const fs::path& path) { return path.string() + s.data(); }
 
 } // namespace miopen
 

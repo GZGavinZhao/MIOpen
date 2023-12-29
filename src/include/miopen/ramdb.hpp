@@ -64,7 +64,7 @@ public:
     static fs::path GetTimeFilePath(const fs::path& path);
     static RamDb& GetCached(const fs::path& path, bool is_system);
 
-    static RamDb& GetCached(const std::string& path,
+    static RamDb& GetCached(const std::filesystem::path& path,
                             bool is_system,
                             const std::string& /*arch*/,
                             std::size_t /*num_cu*/)
