@@ -34,7 +34,6 @@
 #include <miopen/process.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
-#include <miopen/temp_file.hpp>
 
 #include <boost/optional.hpp>
 
@@ -210,12 +209,12 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbTest
 {
 public:
-    DbTest(TempFile& temp_file_) : temp_file(temp_file_) { ResetDb(); }
-
-    virtual ~DbTest() { fs::remove(LockFilePath(temp_file.Path())); }
+    DbTest(TmpDir& tmp_) : tmp{tmp_}, temp_file{(tmp / "test.db").string()} { ResetDb(); }
+    virtual ~DbTest() { fs::remove(LockFilePath(temp_file)); }
 
 protected:
-    TempFile& temp_file;
+    TmpDir& tmp;
+    std::string temp_file;
 
     static const std::array<std::pair<const std::string, TestData>, 2>& common_data()
     {
@@ -227,9 +226,11 @@ protected:
         return data;
     }
 
-    static void ResetDbFile(TempFile& tmp_file) { tmp_file = TempFile{tmp_file.GetPathInfix()}; }
 
-    void ResetDb() { ResetDbFile(temp_file); }
+    void ResetDb() {
+        tmp = TmpDir{};
+        temp_file = (tmp / "test.db").string();
+    }
 
     static const TestData& key()
     {
@@ -319,7 +320,7 @@ template <class TDb>
 class DbFindTest : public DbTest
 {
 public:
-    DbFindTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbFindTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -343,7 +344,7 @@ template <class TDb>
 class DbStoreTest : public DbTest
 {
 public:
-    DbStoreTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbStoreTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -374,7 +375,7 @@ template <class TDb>
 class DbUpdateTest : public DbTest
 {
 public:
-    DbUpdateTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbUpdateTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -420,7 +421,7 @@ template <class TDb>
 class DbRemoveTest : public DbTest
 {
 public:
-    DbRemoveTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbRemoveTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -454,7 +455,7 @@ template <class TDb>
 class DbReadTest : public DbTest
 {
 public:
-    DbReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbReadTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -474,7 +475,7 @@ template <class TDb>
 class DbWriteTest : public DbTest
 {
 public:
-    DbWriteTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbWriteTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -502,7 +503,7 @@ template <class TDb>
 class DbOperationsTest : public DbTest
 {
 public:
-    DbOperationsTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbOperationsTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -583,7 +584,7 @@ template <class TDb>
 class DbParallelTest : public DbTest
 {
 public:
-    DbParallelTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbParallelTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -865,7 +866,7 @@ template <class TDb>
 class DbMultiThreadedTest : public DbTest
 {
 public:
-    DbMultiThreadedTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbMultiThreadedTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -913,7 +914,7 @@ template <class TDb>
 class DbMultiThreadedReadTest : public DbTest
 {
 public:
-    DbMultiThreadedReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbMultiThreadedReadTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -955,7 +956,7 @@ template <class TDb>
 class DbMultiProcessTest : public DbTest
 {
 public:
-    DbMultiProcessTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbMultiProcessTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -983,7 +984,7 @@ public:
                 auto args =
                     std::string{"--"} + ArgsHelper::write_arg +
                                 " --" + ArgsHelper::id_arg + " " + std::to_string(id++) +
-                                " --" + ArgsHelper::path_arg + " " + temp_file.Path() +
+                                " --" + ArgsHelper::path_arg + " " + temp_file +
                                 " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
@@ -1038,7 +1039,7 @@ template <class TDb>
 class DbMultiProcessReadTest : public DbTest
 {
 public:
-    DbMultiProcessReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbMultiProcessReadTest(TmpDir& tmp_) : DbTest(tmp_) {}
 
     void Run() const
     {
@@ -1112,14 +1113,14 @@ private:
 class DbMultiFileTest : public DbTest
 {
 protected:
-    DbMultiFileTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+    DbMultiFileTest(TmpDir& tmp_) : DbTest(tmp_), user_db_path{(tmp_ / "user.db").string()} {}
 
-    std::string user_db_path = temp_file.Path() + ".user";
+    std::string user_db_path;
 
     void ResetDb()
     {
         DbTest::ResetDb();
-        user_db_path = temp_file.Path() + ".user";
+        user_db_path = (tmp / "user.db").string();
     }
 
 private:
@@ -1132,7 +1133,7 @@ template <bool merge_records>
 class DbMultiFileReadTest : public DbMultiFileTest
 {
 public:
-    DbMultiFileReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+    DbMultiFileReadTest(TmpDir& tmp_) : DbMultiFileTest(tmp_) {}
 
     void Run()
     {
@@ -1207,7 +1208,7 @@ private:
 class DbMultiFileWriteTest : public DbMultiFileTest
 {
 public:
-    DbMultiFileWriteTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+    DbMultiFileWriteTest(TmpDir& tmp_) : DbMultiFileTest(tmp_) {}
 
     void Run() const
     {
@@ -1235,7 +1236,7 @@ public:
 class DbMultiFileOperationsTest : public DbMultiFileTest
 {
 public:
-    DbMultiFileOperationsTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+    DbMultiFileOperationsTest(TmpDir& tmp_) : DbMultiFileTest(tmp_) {}
 
     void Run() const
     {
@@ -1327,7 +1328,7 @@ public:
 class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 {
 public:
-    DbMultiFileMultiThreadedReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+    DbMultiFileMultiThreadedReadTest(TmpDir& temp_file_) : DbMultiFileTest(temp_file_) {}
 
     void Run()
     {
@@ -1368,7 +1369,7 @@ public:
 class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 {
 public:
-    DbMultiFileMultiThreadedTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+    DbMultiFileMultiThreadedTest(TmpDir& tmp_) : DbMultiFileTest(tmp_) {}
 
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
@@ -1456,11 +1457,11 @@ struct PerfDbDriver : test_driver
             return;
         }
 
-        TempFile temp_file{"miopen.tests.perfdb"};
+        TmpDir tmp;
 
-        DbTests<RamDb>(temp_file);
-        DbTests<PlainTextDb>(temp_file);
-        MultiFileDbTests(temp_file);
+        DbTests<RamDb>(tmp);
+        DbTests<PlainTextDb>(tmp);
+        MultiFileDbTests(tmp);
     }
 
 private:
@@ -1472,34 +1473,34 @@ private:
     std::string mt_child_db_class;
 
     template <class TDb>
-    void DbTests(TempFile& temp_file) const
+    void DbTests(TmpDir& tmp_) const
     {
-        DbFindTest<TDb>{temp_file}.Run();
-        DbStoreTest<TDb>{temp_file}.Run();
-        DbUpdateTest<TDb>{temp_file}.Run();
-        DbRemoveTest<TDb>{temp_file}.Run();
-        DbReadTest<TDb>{temp_file}.Run();
-        DbWriteTest<TDb>{temp_file}.Run();
-        DbOperationsTest<TDb>{temp_file}.Run();
-        DbParallelTest<TDb>{temp_file}.Run();
+        DbFindTest<TDb>{tmp_}.Run();
+        DbStoreTest<TDb>{tmp_}.Run();
+        DbUpdateTest<TDb>{tmp_}.Run();
+        DbRemoveTest<TDb>{tmp_}.Run();
+        DbReadTest<TDb>{tmp_}.Run();
+        DbWriteTest<TDb>{tmp_}.Run();
+        DbOperationsTest<TDb>{tmp_}.Run();
+        DbParallelTest<TDb>{tmp_}.Run();
 
-        DbMultiThreadedReadTest<TDb>{temp_file}.Run();
-        DbMultiProcessReadTest<TDb>{temp_file}.Run();
-        DbMultiThreadedTest<TDb>{temp_file}.Run();
-        DbMultiProcessTest<TDb>{temp_file}.Run();
+        DbMultiThreadedReadTest<TDb>{tmp_}.Run();
+        DbMultiProcessReadTest<TDb>{tmp_}.Run();
+        DbMultiThreadedTest<TDb>{tmp_}.Run();
+        DbMultiProcessTest<TDb>{tmp_}.Run();
     }
 
-    void MultiFileDbTests(TempFile& temp_file) const
+    void MultiFileDbTests(TmpDir& tmp_) const
     {
         if(!DisableUserDbFileIO)
         {
-            DbMultiFileReadTest<true>{temp_file}.Run();
-            DbMultiFileReadTest<false>{temp_file}.Run();
-            DbMultiFileWriteTest{temp_file}.Run();
+            DbMultiFileReadTest<true>{tmp_}.Run();
+            DbMultiFileReadTest<false>{tmp_}.Run();
+            DbMultiFileWriteTest{tmp_}.Run();
         }
-        DbMultiFileOperationsTest{temp_file}.Run();
-        DbMultiFileMultiThreadedReadTest{temp_file}.Run();
-        DbMultiFileMultiThreadedTest{temp_file}.Run();
+        DbMultiFileOperationsTest{tmp_}.Run();
+        DbMultiFileMultiThreadedReadTest{tmp_}.Run();
+        DbMultiFileMultiThreadedTest{tmp_}.Run();
     }
 };
 
