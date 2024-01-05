@@ -42,14 +42,14 @@
 
 namespace miopen {
 
-std::string RamDb::GetTimeFilePath(const std::string& path) { return path + ".time"; }
+fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path.string() + ".time"; }
 
-static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
+static ramdb_clock::time_point GetDbModificationTime(const fs::path& path)
 {
     const auto time_file_path = RamDb::GetTimeFilePath(path);
     auto file                 = std::ifstream{time_file_path};
 
-    if(!file)
+    if(!file.is_open())
         // Zero time from epoch, considering file ancient if time can't be retrieved.
         return {};
 
@@ -58,7 +58,7 @@ static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
     return ramdb_clock::time_point{ramdb_clock::duration{time}};
 }
 
-static void UpdateDbModificationTime(const std::string& path)
+static void UpdateDbModificationTime(const fs::path& path)
 {
     MIOPEN_LOG_I2("Updating db modification time for " << path);
 
@@ -68,7 +68,7 @@ static void UpdateDbModificationTime(const std::string& path)
 
     if(!file)
     {
-        MIOPEN_LOG_E("Cannot update database modification time: " + time_file_path);
+        MIOPEN_LOG_E("Cannot update database modification time: " + time_file_path.string());
         return;
     }
 
@@ -86,16 +86,16 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 
 using exclusive_lock = std::unique_lock<LockFile>;
 
-RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system) {}
+RamDb::RamDb(const fs::path& path, bool is_system) : PlainTextDb(path, is_system) {}
 
-RamDb& RamDb::GetCached(const std::string& path, bool is_system)
+RamDb& RamDb::GetCached(const fs::path& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<std::string, RamDb*>{};
+    static auto instances = std::map<fs::path, RamDb*>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())

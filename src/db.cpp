@@ -47,9 +47,9 @@
 
 namespace miopen {
 
-PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
+PlainTextDb::PlainTextDb(const fs::path& filename_, bool is_system)
     : filename(filename_),
-      lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
+      lock_file(LockFile::Get(LockFilePath(filename_))),
       warning_if_unreadable(is_system)
 {
     if(is_system)
@@ -60,10 +60,8 @@ PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
 
     if(!DisableUserDbFileIO)
     {
-        auto file            = fs::path(filename_);
-        const auto directory = file.remove_filename();
-
-        if(!(fs::exists(directory)))
+        fs::path directory = filename.has_parent_path() ? filename.parent_path() : "";
+        if(!fs::exists(directory))
         {
             if(!fs::create_directories(directory))
                 MIOPEN_LOG_W("Unable to create a directory: " << directory);
@@ -264,7 +262,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
             return false;
         }
 
-        const auto temp_name = filename + ".temp";
+        const auto temp_name = filename.string() + ".temp";
         std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)

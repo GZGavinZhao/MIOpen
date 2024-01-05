@@ -31,6 +31,7 @@
 #include <boost/optional.hpp>
 
 #include <chrono>
+#include <filesystem>
 #include <map>
 #include <string>
 #include <sstream>
@@ -48,20 +49,20 @@ class LockFile;
 class RamDb : protected PlainTextDb
 {
 public:
-    RamDb(std::string path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
+    RamDb(const fs::path& path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
         : RamDb(path, is_system)
     {
     }
 
-    RamDb(std::string path, bool is_system = false);
+    RamDb(const fs::path& path, bool is_system = false);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
     RamDb& operator=(const RamDb&) = delete;
     RamDb& operator=(RamDb&&) = delete;
 
-    static std::string GetTimeFilePath(const std::string& path);
-    static RamDb& GetCached(const std::string& path, bool is_system);
+    static fs::path GetTimeFilePath(const fs::path& path);
+    static RamDb& GetCached(const fs::path& path, bool is_system);
 
     static RamDb& GetCached(const std::string& path,
                             bool is_system,

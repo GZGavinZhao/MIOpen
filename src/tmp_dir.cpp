@@ -40,8 +40,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 
 namespace miopen {
 
-TmpDir::TmpDir(std::string_view prefix)
-    : path{fs::temp_directory_path() / boost::filesystem::unique_path().string()}
+TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
 {
     std::string p{prefix.empty() ? "" :
         (prefix[0] == '-' ? "" : "-") + std::string{prefix}};
@@ -77,10 +76,10 @@ TmpDir::~TmpDir()
         {
             try
             {
-                fs::remove_all(this->path);
+                fs::remove_all(path);
                 break;
             }
-            catch(const boost::filesystem::filesystem_error& err)
+            catch(const fs::filesystem_error& err)
             {
                 MIOPEN_LOG_W(err.what());
                 std::this_thread::sleep_for(std::chrono::milliseconds{250});
