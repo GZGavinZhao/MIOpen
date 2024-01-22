@@ -196,7 +196,7 @@ void SaveBinary(const std::vector<char>& hsaco,
 
     auto db = GetDb(target, num_cu);
 
-    const auto filename = name + ".o";
+    const std::filesystem::path filename = name.string() + ".o";
     KernelConfig cfg{filename.string(), args, hsaco};
 
     MIOPEN_LOG_I2("Saving binary for: " << filename << "; args: " << args);
