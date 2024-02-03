@@ -77,7 +77,7 @@ namespace fs = ::std::experimental::filesystem;
 #endif
 
 inline fs::path operator + (const fs::path& path, std::string_view s) { return path.string() + s.data(); }
-inline std::string operator + (std::string_view s, const fs::path& path) { return path.string() + s.data(); }
+inline std::string operator+(std::string_view s, const fs::path& path) { return s.data() + path.string(); }
 
 } // namespace miopen
 
