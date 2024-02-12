@@ -87,6 +87,7 @@ set( MIOpen_Source
     activ_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
+    backend_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
