@@ -57,6 +57,7 @@
 #include <thread>
 #include <mutex>
 #include <shared_mutex>
+#include <string>
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
     (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
@@ -228,9 +229,31 @@ struct HandleImpl
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
 #if ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME
-        const std::string name("gfx" + std::to_string(props.gcnArch));
+        std::string name("gfx" + std::to_string(props.gcnArch));
 #else
-        const std::string name(props.gcnArchName);
+        std::string name(props.gcnArchName);
+
+        // coerce device name
+        size_t loc = std::string::npos;
+        if((loc = name.find("gfx103")) != std::string::npos)
+        {
+            size_t offset = std::char_traits<char>::length("gfx103");
+            name.at(loc + offset) = '0';
+        }
+        else if((loc = name.find("gfx101")) != std::string::npos)
+        {
+            size_t offset = std::char_traits<char>::length("gfx101");
+            name.at(loc + offset) = '0';
+        }
+        else if((loc = name.find("gfx90")) != std::string::npos)
+        {
+            size_t offset = std::char_traits<char>::length("gfx90");
+            char ver = name.at(loc + offset);
+            if (ver == '2' || ver == '9' || ver == 'c')
+            {
+                name.at(loc + offset) = '0';
+            }
+        }
 #endif
         MIOPEN_LOG_NQI("Raw device name: " << name);
         return name; // NOLINT (performance-no-automatic-move)
